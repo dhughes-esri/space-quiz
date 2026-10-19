@@ -462,7 +462,16 @@
   <main class="page">
     <header class="topline">
       <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span><span>Orbit Academy</span></div>
-      <span class="mission-tag">Mission 01 · Space</span>
+      <div class="topline-tools">
+        <label class="theme-picker">Theme
+          <select id="theme-select">
+            <option value="deep-space">Deep Space</option>
+            <option value="launch-pad">Launch Pad</option>
+            <option value="lunar">Lunar</option>
+          </select>
+        </label>
+        <span class="mission-tag">Mission 01 · Space</span>
+      </div>
     </header>
 
     <section class="hero" aria-labelledby="page-title">
@@ -605,14 +614,40 @@
     const finalScore = document.querySelector("#final-score");
     const personalBestContainer = document.querySelector("#personal-best-container");
     const personalBestDisplay = document.querySelector("#personal-best");
+    const themeSelect = document.querySelector("#theme-select");
 
     const personalBestStorageKey = "space-explorer-personal-best";
+    const themeStorageKey = "space-explorer-theme";
+    const themes = new Set(["deep-space", "launch-pad", "lunar"]);
     let currentQuestion = 0;
     let score = 0;
     let answered = false;
     const selectedAnswers = Array(questions.length).fill(null);
     let personalBest = null;
     let storageAvailable = true;
+
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      themeSelect.value = theme;
+    }
+
+    try {
+      const savedTheme = window.localStorage.getItem(themeStorageKey);
+      if (themes.has(savedTheme)) applyTheme(savedTheme);
+    } catch (error) {
+      console.warn("Unable to load the selected theme from browser storage.", error);
+    }
+
+    themeSelect.addEventListener("change", () => {
+      const theme = themeSelect.value;
+      if (!themes.has(theme)) return;
+      applyTheme(theme);
+      try {
+        window.localStorage.setItem(themeStorageKey, theme);
+      } catch (error) {
+        console.warn("Unable to save the selected theme in browser storage.", error);
+      }
+    });
 
     try {
       const savedScore = window.localStorage.getItem(personalBestStorageKey);
