@@ -320,14 +320,25 @@
     }
     .result h2, .review h2 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.5rem); letter-spacing: -.04em; }
     .result-copy { max-width: 470px; margin: 12px auto 20px; color: var(--muted); line-height: 1.65; }
+    .result-scores {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px 36px;
+      margin-bottom: 24px;
+    }
+    .score-label { margin: 0; color: var(--muted); font-size: .9rem; font-weight: 750; }
     .final-score {
-      margin: 0 0 24px;
+      margin: 0;
       color: #d6c6ff;
       font-size: clamp(2.5rem, 8vw, 4rem);
       font-weight: 900;
       letter-spacing: -.06em;
     }
+    .final-score .score-value { color: #d6c6ff; font-size: 1em; }
     .final-score span { color: var(--muted); font-size: .42em; letter-spacing: 0; }
+    .personal-best[hidden] { display: none; }
+    .personal-best .final-score { font-size: clamp(1.8rem, 6vw, 2.5rem); }
     .result-actions, .review-actions {
       display: flex;
       flex-wrap: wrap;
@@ -422,7 +433,16 @@
       <p class="eyebrow">Mission complete</p>
       <h2 id="result-title" tabindex="-1">You made it through the cosmos!</h2>
       <p class="result-copy" id="result-copy"></p>
-      <p class="final-score" id="final-score"></p>
+      <div class="result-scores">
+        <div>
+          <p class="score-label">Current score</p>
+          <p class="final-score" id="final-score"></p>
+        </div>
+        <div class="personal-best" id="personal-best-container">
+          <p class="score-label">Personal best</p>
+          <p class="final-score" id="personal-best"></p>
+        </div>
+      </div>
       <div class="result-actions">
         <button class="review-button" id="review-button" type="button">Review answers <span aria-hidden="true">↓</span></button>
         <button class="restart-button" id="restart-button" type="button">Play again <span aria-hidden="true">↻</span></button>
@@ -520,11 +540,30 @@
     const restartButton = document.querySelector("#restart-button");
     const reviewButton = document.querySelector("#review-button");
     const backResultsButton = document.querySelector("#back-results-button");
+    const finalScore = document.querySelector("#final-score");
+    const personalBestContainer = document.querySelector("#personal-best-container");
+    const personalBestDisplay = document.querySelector("#personal-best");
 
+    const personalBestStorageKey = "space-explorer-personal-best";
     let currentQuestion = 0;
     let score = 0;
     let answered = false;
     const selectedAnswers = Array(questions.length).fill(null);
+    let personalBest = null;
+    let storageAvailable = true;
+
+    try {
+      const savedScore = window.localStorage.getItem(personalBestStorageKey);
+      if (savedScore !== null) {
+        const parsedScore = Number(savedScore);
+        if (Number.isInteger(parsedScore) && parsedScore >= 0 && parsedScore <= questions.length) {
+          personalBest = parsedScore;
+        }
+      }
+    } catch (error) {
+      storageAvailable = false;
+      console.warn("Unable to load the personal-best score from browser storage.", error);
+    }
 
     function renderQuestion() {
       const item = questions[currentQuestion];
@@ -590,7 +629,22 @@
       result.hidden = false;
       progressTrack.setAttribute("aria-valuenow", String(questions.length));
       progressFill.style.width = "100%";
-      document.querySelector("#final-score").innerHTML = `${score}<span> / ${questions.length}</span>`;
+
+      if (storageAvailable && (personalBest === null || score > personalBest)) {
+        try {
+          window.localStorage.setItem(personalBestStorageKey, String(score));
+          personalBest = score;
+        } catch (error) {
+          storageAvailable = false;
+          console.warn("Unable to save the personal-best score to browser storage.", error);
+        }
+      }
+
+      finalScore.innerHTML = `<span class="score-value">${score}</span><span> / ${questions.length}</span>`;
+      personalBestContainer.hidden = !storageAvailable;
+      if (storageAvailable) {
+        personalBestDisplay.innerHTML = `<span class="score-value">${personalBest}</span><span> / ${questions.length}</span>`;
+      }
 
       let message;
       let icon;
