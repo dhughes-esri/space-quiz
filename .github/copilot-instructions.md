@@ -9,7 +9,7 @@
 
 - `index.html` contains the entire application: semantic page markup, CSS in `<style>`, and quiz logic in an inline `<script>`. Keep the page self-contained; there is no package manifest or separate runtime.
 - The `questions` array is the source for question content, answer choices, correct-answer indexes, and explanations. `questions.length` drives the score denominator and progress. The UI text also describes the quiz as ten questions, so keep it in sync if the question count changes.
-- Quiz state (`currentQuestion`, `score`, `answered`) is managed in the script. `renderQuestion()` builds the answer buttons, `chooseAnswer()` scores and locks the current choices, and the next/restart handlers advance, show results, or reset the quiz.
+- Quiz state (`currentQuestion`, `score`, `answered`, and per-question `selectedAnswers`) is managed in the script. `renderQuestion()` builds the answer buttons, `chooseAnswer()` stores the selection and updates scoring, and `renderReview()` displays the chosen and correct answers. The results/review and restart handlers switch screens or reset the quiz state.
 
 ## Project conventions
 

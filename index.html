@@ -276,7 +276,7 @@
       justify-content: flex-end;
       margin-top: 14px;
     }
-    .next-button, .restart-button {
+    .next-button, .restart-button, .review-button, .back-results-button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -292,11 +292,14 @@
       box-shadow: 0 8px 24px rgba(124, 116, 244, .2);
       transition: transform .18s ease, filter .18s ease;
     }
-    .next-button:hover, .restart-button:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .next-button:hover, .restart-button:hover, .review-button:hover, .back-results-button:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+    }
     .next-button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 
     .result { text-align: center; }
-    .result[hidden], .quiz[hidden] { display: none; }
+    .result[hidden], .quiz[hidden], .review[hidden] { display: none; }
     .result-icon {
       display: grid;
       width: 92px;
@@ -310,7 +313,12 @@
       animation: float 3s ease-in-out infinite;
     }
     @keyframes float { 50% { transform: translateY(-7px) rotate(3deg); } }
-    .result h2 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.5rem); letter-spacing: -.04em; }
+    h2[tabindex="-1"]:focus {
+      outline: 3px solid var(--cyan);
+      outline-offset: 6px;
+      border-radius: 4px;
+    }
+    .result h2, .review h2 { margin: 0; font-size: clamp(1.8rem, 5vw, 2.5rem); letter-spacing: -.04em; }
     .result-copy { max-width: 470px; margin: 12px auto 20px; color: var(--muted); line-height: 1.65; }
     .final-score {
       margin: 0 0 24px;
@@ -320,7 +328,37 @@
       letter-spacing: -.06em;
     }
     .final-score span { color: var(--muted); font-size: .42em; letter-spacing: 0; }
-    .result .restart-button { margin: 0 auto; }
+    .result-actions, .review-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .review-list {
+      display: grid;
+      gap: 12px;
+      margin: 24px 0;
+      padding-left: 1.6rem;
+      text-align: left;
+    }
+    .review-list li::marker { color: var(--cyan); font-weight: 800; }
+    .review-item {
+      padding: 17px;
+      border: 1px solid var(--panel-border);
+      border-radius: 15px;
+      background: rgba(255, 255, 255, .035);
+    }
+    .review-question {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      line-height: 1.45;
+    }
+    .review-status { margin: 0 0 10px; font-weight: 800; }
+    .review-status.correct { color: var(--green); }
+    .review-status.incorrect { color: var(--red); }
+    .review-answer { margin: 5px 0; color: var(--muted); line-height: 1.5; }
+    .review-answer strong { color: var(--ink); }
 
     .footer-note {
       margin: 20px 0 0;
@@ -385,7 +423,19 @@
       <h2 id="result-title" tabindex="-1">You made it through the cosmos!</h2>
       <p class="result-copy" id="result-copy"></p>
       <p class="final-score" id="final-score"></p>
-      <button class="restart-button" id="restart-button" type="button">Play again <span aria-hidden="true">↻</span></button>
+      <div class="result-actions">
+        <button class="review-button" id="review-button" type="button">Review answers <span aria-hidden="true">↓</span></button>
+        <button class="restart-button" id="restart-button" type="button">Play again <span aria-hidden="true">↻</span></button>
+      </div>
+    </section>
+
+    <section class="card review" id="review" aria-labelledby="review-title" hidden>
+      <p class="eyebrow">Mission debrief</p>
+      <h2 id="review-title" tabindex="-1">Review your answers</h2>
+      <ol class="review-list" id="review-list"></ol>
+      <div class="review-actions">
+        <button class="back-results-button" id="back-results-button" type="button">Back to results <span aria-hidden="true">↑</span></button>
+      </div>
     </section>
 
     <p class="footer-note">No pressure, just stardust. Take your time and enjoy the journey.</p>
@@ -457,6 +507,8 @@
 
     const quiz = document.querySelector("#quiz");
     const result = document.querySelector("#result");
+    const review = document.querySelector("#review");
+    const reviewList = document.querySelector("#review-list");
     const questionCount = document.querySelector("#question-count");
     const scoreDisplay = document.querySelector("#score");
     const progressTrack = document.querySelector("#progress-track");
@@ -466,10 +518,13 @@
     const feedback = document.querySelector("#feedback");
     const nextButton = document.querySelector("#next-button");
     const restartButton = document.querySelector("#restart-button");
+    const reviewButton = document.querySelector("#review-button");
+    const backResultsButton = document.querySelector("#back-results-button");
 
     let currentQuestion = 0;
     let score = 0;
     let answered = false;
+    const selectedAnswers = Array(questions.length).fill(null);
 
     function renderQuestion() {
       const item = questions[currentQuestion];
@@ -504,6 +559,7 @@
       if (answered) return;
       answered = true;
       const item = questions[currentQuestion];
+      selectedAnswers[currentQuestion] = selectedIndex;
       const isCorrect = selectedIndex === item.correct;
       if (isCorrect) score += 1;
       scoreDisplay.textContent = `✦ Score: ${score}`;
@@ -556,6 +612,39 @@
       document.querySelector("#result-title").focus();
     }
 
+    function renderReview() {
+      reviewList.replaceChildren();
+      questions.forEach((item, index) => {
+        const selectedIndex = selectedAnswers[index];
+        const isCorrect = selectedIndex === item.correct;
+        const entry = document.createElement("li");
+        entry.className = "review-item";
+
+        const question = document.createElement("h3");
+        question.className = "review-question";
+        question.textContent = item.question;
+
+        const status = document.createElement("p");
+        status.className = `review-status ${isCorrect ? "correct" : "incorrect"}`;
+        status.textContent = isCorrect ? "Correct — you chose the right answer." : "Not quite — this was not the correct answer.";
+
+        const chosenAnswer = document.createElement("p");
+        chosenAnswer.className = "review-answer";
+        const chosenLabel = document.createElement("strong");
+        chosenLabel.textContent = "Your answer: ";
+        chosenAnswer.append(chosenLabel, document.createTextNode(item.answers[selectedIndex]));
+
+        const correctAnswer = document.createElement("p");
+        correctAnswer.className = "review-answer";
+        const correctLabel = document.createElement("strong");
+        correctLabel.textContent = "Correct answer: ";
+        correctAnswer.append(correctLabel, document.createTextNode(item.answers[item.correct]));
+
+        entry.append(question, status, chosenAnswer, correctAnswer);
+        reviewList.append(entry);
+      });
+    }
+
     nextButton.addEventListener("click", () => {
       if (!answered) return;
       if (currentQuestion === questions.length - 1) {
@@ -566,11 +655,26 @@
       renderQuestion();
     });
 
+    reviewButton.addEventListener("click", () => {
+      renderReview();
+      result.hidden = true;
+      review.hidden = false;
+      document.querySelector("#review-title").focus();
+    });
+
+    backResultsButton.addEventListener("click", () => {
+      review.hidden = true;
+      result.hidden = false;
+      document.querySelector("#result-title").focus();
+    });
+
     restartButton.addEventListener("click", () => {
       currentQuestion = 0;
       score = 0;
+      selectedAnswers.fill(null);
       scoreDisplay.textContent = "✦ Score: 0";
       result.hidden = true;
+      review.hidden = true;
       quiz.hidden = false;
       renderQuestion();
     });
