@@ -630,21 +630,22 @@
       progressTrack.setAttribute("aria-valuenow", String(questions.length));
       progressFill.style.width = "100%";
 
-      if (storageAvailable) {
+      if (storageAvailable) {
+
         try {
-          const savedScore = window.localStorage.getItem(personalBestStorageKey);
-          const storedBest = savedScore === null ? null : Number(savedScore);
-          if (Number.isInteger(storedBest) && storedBest >= 0 && storedBest <= questions.length &&
-              (personalBest === null || storedBest > personalBest)) {
-            personalBest = storedBest;
-          }
-          if (personalBest === null || score > personalBest) {
-            window.localStorage.setItem(personalBestStorageKey, String(score));
-            personalBest = score;
-          }
+          const savedScore = window.localStorage.getItem(personalBestStorageKey);
+          const storedBest = savedScore === null ? null : Number(savedScore);
+          if (Number.isInteger(storedBest) && storedBest >= 0 && storedBest <= questions.length &&
+              (personalBest === null || storedBest > personalBest)) {
+            personalBest = storedBest;
+          }
+          if (personalBest === null || score > personalBest) {
+            window.localStorage.setItem(personalBestStorageKey, String(score));
+            personalBest = score;
+          }
         } catch (error) {
           storageAvailable = false;
-          console.warn("Unable to update the personal-best score in browser storage.", error);
+          console.warn("Unable to update the personal-best score in browser storage.", error);
         }
       }
 
