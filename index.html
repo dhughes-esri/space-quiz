@@ -99,7 +99,7 @@
     }
 
     button { font: inherit; }
-    button:focus-visible, a:focus-visible {
+    button:focus-visible, a:focus-visible, .theme-picker select:focus-visible {
       outline: 3px solid var(--cyan);
       outline-offset: 4px;
     }
@@ -127,10 +127,10 @@
     .brand { display: inline-flex; align-items: center; gap: 10px; }
     .brand-mark { font-size: 1.35rem; }
     .topline-tools { display: flex; align-items: center; gap: 10px; }
-    .theme-picker { display: inline-flex; align-items: center; gap: 8px; }
+    .theme-picker { position: relative; display: inline-flex; align-items: center; gap: 8px; }
     .theme-picker select {
       min-height: 36px;
-      padding: 0 28px 0 10px;
+      padding: 0 36px 0 10px;
       border: 1px solid var(--panel-border);
       border-radius: 99px;
       background: var(--panel);
@@ -141,6 +141,19 @@
       letter-spacing: normal;
       text-transform: none;
       cursor: pointer;
+      appearance: none;
+    }
+    .theme-picker::after {
+      position: absolute;
+      top: calc(50% - 4px);
+      right: 12px;
+      width: 7px;
+      height: 7px;
+      border-right: 2px solid var(--muted);
+      border-bottom: 2px solid var(--muted);
+      content: "";
+      pointer-events: none;
+      transform: rotate(45deg);
     }
     .theme-picker option { background: #1c1b3e; color: #f8f6ff; }
     .mission-tag {
@@ -355,7 +368,6 @@
       transform: translateY(-2px);
       filter: brightness(1.08);
     }
-    .review-button span { transform: translateX(-4px); }
     .next-button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 
     .result { text-align: center; }
@@ -443,7 +455,8 @@
       .topline { margin-bottom: 26px; font-size: .7rem; }
       .topline-tools { gap: 6px; }
       .theme-picker { gap: 5px; }
-      .theme-picker select { min-height: 32px; padding-left: 7px; padding-right: 22px; font-size: .82rem; }
+      .theme-picker select { min-height: 32px; padding-left: 7px; padding-right: 30px; font-size: .82rem; }
+      .theme-picker::after { right: 10px; }
       .mission-tag { padding: 7px 9px; }
       .card { border-radius: 20px; }
       .answer { min-height: 56px; padding: 10px 12px; gap: 11px; }
