@@ -633,6 +633,17 @@
     const personalBestStorageKey = "space-explorer-personal-best";
     const themeStorageKey = "space-explorer-theme";
     const themes = new Set(["deep-space", "launch-pad", "lunar"]);
+
+    function shuffleQuestions() {
+      const shuffledQuestions = [...questions];
+      for (let index = shuffledQuestions.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [shuffledQuestions[index], shuffledQuestions[randomIndex]] = [shuffledQuestions[randomIndex], shuffledQuestions[index]];
+      }
+      return shuffledQuestions;
+    }
+
+    let questionOrder = shuffleQuestions();
     let currentQuestion = 0;
     let score = 0;
     let answered = false;
@@ -677,7 +688,7 @@
     }
 
     function renderQuestion() {
-      const item = questions[currentQuestion];
+      const item = questionOrder[currentQuestion];
       answered = false;
       questionCount.innerHTML = `Question <strong>${currentQuestion + 1}</strong> of ${questions.length}`;
       questionHeading.textContent = item.question;
@@ -708,7 +719,7 @@
     function chooseAnswer(selectedIndex) {
       if (answered) return;
       answered = true;
-      const item = questions[currentQuestion];
+      const item = questionOrder[currentQuestion];
       selectedAnswers[currentQuestion] = selectedIndex;
       const isCorrect = selectedIndex === item.correct;
       if (isCorrect) score += 1;
@@ -788,7 +799,7 @@
 
     function renderReview() {
       reviewList.replaceChildren();
-      questions.forEach((item, index) => {
+      questionOrder.forEach((item, index) => {
         const selectedIndex = selectedAnswers[index];
         const isCorrect = selectedIndex === item.correct;
         const entry = document.createElement("li");
@@ -843,6 +854,7 @@
     });
 
     restartButton.addEventListener("click", () => {
+      questionOrder = shuffleQuestions();
       currentQuestion = 0;
       score = 0;
       selectedAnswers.fill(null);
