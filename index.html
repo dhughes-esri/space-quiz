@@ -206,12 +206,21 @@
       color: var(--ink);
       text-align: left;
       cursor: pointer;
-      transition: border-color .18s ease, background .18s ease, transform .18s ease;
+      transition: border-color .3s ease, background-color .3s ease, transform .18s ease;
+    }
+    .answer:focus-visible {
+      outline: 3px solid var(--cyan);
+      outline-offset: 3px;
+      box-shadow: 0 0 0 5px rgba(121, 229, 243, .18);
     }
     .answer:hover:not(:disabled) {
       transform: translateY(-2px);
       border-color: rgba(121, 229, 243, .65);
       background: rgba(121, 229, 243, .09);
+    }
+    .answer:active:not(:disabled) {
+      transform: translateY(0) scale(.985);
+      background: rgba(121, 229, 243, .16);
     }
     .answer:disabled { cursor: default; }
     .answer-label {
@@ -225,6 +234,7 @@
       color: #d6d0f2;
       font-size: .86rem;
       font-weight: 800;
+      transition: border-color .3s ease, color .3s ease;
     }
     .answer-text { flex: 1; font-weight: 620; line-height: 1.4; }
     .answer-mark { font-size: 1.15rem; font-weight: 900; }
