@@ -348,7 +348,7 @@
       justify-content: flex-end;
       margin-top: 14px;
     }
-    .next-button, .restart-button, .review-button, .back-results-button {
+    .next-button, .restart-button, .retry-button, .review-button, .back-results-button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -364,7 +364,7 @@
       box-shadow: 0 8px 24px rgba(124, 116, 244, .2);
       transition: transform .18s ease, filter .18s ease;
     }
-    .next-button:hover, .restart-button:hover, .review-button:hover, .back-results-button:hover {
+    .next-button:hover, .restart-button:hover, .retry-button:hover, .review-button:hover, .back-results-button:hover {
       transform: translateY(-2px);
       filter: brightness(1.08);
     }
@@ -530,6 +530,7 @@
       </div>
       <div class="result-actions">
         <button class="review-button" id="review-button" type="button">Review answers <span aria-hidden="true">↓</span></button>
+        <button class="retry-button" id="retry-button" type="button" hidden>Retry missed questions <span aria-hidden="true">↻</span></button>
         <button class="restart-button" id="restart-button" type="button">Play again <span aria-hidden="true">↻</span></button>
       </div>
     </section>
@@ -623,6 +624,7 @@
     const feedback = document.querySelector("#feedback");
     const nextButton = document.querySelector("#next-button");
     const restartButton = document.querySelector("#restart-button");
+    const retryButton = document.querySelector("#retry-button");
     const reviewButton = document.querySelector("#review-button");
     const backResultsButton = document.querySelector("#back-results-button");
     const finalScore = document.querySelector("#final-score");
@@ -647,7 +649,8 @@
     let currentQuestion = 0;
     let score = 0;
     let answered = false;
-    const selectedAnswers = Array(questions.length).fill(null);
+    let selectedAnswers = Array(questions.length).fill(null);
+    let isRetryRun = false;
     let personalBest = null;
     let storageAvailable = true;
 
@@ -690,13 +693,13 @@
     function renderQuestion() {
       const item = questionOrder[currentQuestion];
       answered = false;
-      questionCount.innerHTML = `Question <strong>${currentQuestion + 1}</strong> of ${questions.length}`;
+      questionCount.innerHTML = `Question <strong>${currentQuestion + 1}</strong> of ${questionOrder.length}`;
       questionHeading.textContent = item.question;
       answersContainer.replaceChildren();
       feedback.textContent = "";
       feedback.className = "feedback";
       nextButton.disabled = true;
-      nextButton.innerHTML = currentQuestion === questions.length - 1
+      nextButton.innerHTML = currentQuestion === questionOrder.length - 1
         ? 'See my results <span aria-hidden="true">→</span>'
         : 'Next question <span aria-hidden="true">→</span>';
 
@@ -711,8 +714,9 @@
         answersContainer.append(button);
       });
 
+      progressTrack.setAttribute("aria-valuemax", String(questionOrder.length));
       progressTrack.setAttribute("aria-valuenow", String(currentQuestion));
-      progressFill.style.width = `${(currentQuestion / questions.length) * 100}%`;
+      progressFill.style.width = `${(currentQuestion / questionOrder.length) * 100}%`;
       questionHeading.focus();
     }
 
@@ -742,17 +746,18 @@
         : `Not quite — ${item.fact}`;
       nextButton.disabled = false;
       progressTrack.setAttribute("aria-valuenow", String(currentQuestion + 1));
-      progressFill.style.width = `${((currentQuestion + 1) / questions.length) * 100}%`;
+      progressFill.style.width = `${((currentQuestion + 1) / questionOrder.length) * 100}%`;
       nextButton.focus();
     }
 
     function showResults() {
       quiz.hidden = true;
       result.hidden = false;
-      progressTrack.setAttribute("aria-valuenow", String(questions.length));
+      progressTrack.setAttribute("aria-valuemax", String(questionOrder.length));
+      progressTrack.setAttribute("aria-valuenow", String(questionOrder.length));
       progressFill.style.width = "100%";
 
-      if (storageAvailable) {
+      if (storageAvailable && !isRetryRun) {
 
         try {
           const savedScore = window.localStorage.getItem(personalBestStorageKey);
@@ -771,21 +776,23 @@
         }
       }
 
-      finalScore.innerHTML = `<span class="score-value">${score}</span><span> / ${questions.length}</span>`;
-      personalBestContainer.hidden = !storageAvailable;
-      if (storageAvailable) {
+      finalScore.innerHTML = `<span class="score-value">${score}</span><span> / ${questionOrder.length}</span>`;
+      personalBestContainer.hidden = !storageAvailable || isRetryRun;
+      if (storageAvailable && !isRetryRun) {
         personalBestDisplay.innerHTML = `<span class="score-value">${personalBest}</span><span> / ${questions.length}</span>`;
       }
 
+      retryButton.hidden = !questionOrder.some((item, index) => selectedAnswers[index] !== item.correct);
       let message;
       let icon;
-      if (score === questions.length) {
+      const completionRatio = score / questionOrder.length;
+      if (score === questionOrder.length) {
         message = "An out-of-this-world perfect score! You really are a star navigator.";
         icon = "🌟";
-      } else if (score >= 7) {
+      } else if (completionRatio >= 0.7) {
         message = "Stellar work! Your space knowledge is shining bright.";
         icon = "🪐";
-      } else if (score >= 4) {
+      } else if (completionRatio >= 0.4) {
         message = "Nice exploring! There's always more of the universe to discover.";
         icon = "🌙";
       } else {
@@ -832,7 +839,7 @@
 
     nextButton.addEventListener("click", () => {
       if (!answered) return;
-      if (currentQuestion === questions.length - 1) {
+      if (currentQuestion === questionOrder.length - 1) {
         showResults();
         return;
       }
@@ -853,17 +860,26 @@
       document.querySelector("#result-title").focus();
     });
 
-    restartButton.addEventListener("click", () => {
-      questionOrder = shuffleQuestions();
+    function startQuiz(order, retry) {
+      questionOrder = order;
+      isRetryRun = retry;
       currentQuestion = 0;
       score = 0;
-      selectedAnswers.fill(null);
+      selectedAnswers = Array(questionOrder.length).fill(null);
       scoreDisplay.textContent = "✦ Score: 0";
       result.hidden = true;
       review.hidden = true;
       quiz.hidden = false;
       renderQuestion();
+    }
+
+    retryButton.addEventListener("click", () => {
+      const missedQuestions = questionOrder.filter((item, index) => selectedAnswers[index] !== item.correct);
+      if (missedQuestions.length === 0) return;
+      startQuiz(missedQuestions, true);
     });
+
+    restartButton.addEventListener("click", () => startQuiz(shuffleQuestions(), false));
 
     renderQuestion();
   </script>
